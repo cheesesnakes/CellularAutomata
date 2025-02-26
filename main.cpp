@@ -17,10 +17,11 @@ int K = 5; // local saturation
 // functions
 int death(); // determine death
 int rep(); // determine reproduction
-vector<vector<int>> update(vector<vector<int>> &grid); // update grid
-void draw(sf::RenderWindow &window, vector<vector<int>> &grid); // draw grid
+vector<int> update(vector<int> &grid); // update grid
+void draw(sf::RenderWindow &window, vector<int> &grid); // draw grid
 
 int main(int argc, char* argv[]) {
+    
     // parse command-line arguments using getopt
     int opt;
     while ((opt = getopt(argc, argv, "L:p:d:b:K:")) != -1) {
@@ -46,20 +47,18 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // create grid
-    vector<vector<int>> grid(L, vector<int>(L, 0));
-
-    // fill the grid with random 1s
+    // create grid and fill with random 1s
+    
     random_device rd;
     mt19937 gen(rd());
     binomial_distribution<int> dis(1, 0.01);
 
-    for (int i = 0; i < L; ++i) {
-        for (int j = 0; j < L; ++j) {
-            grid[i][j] = dis(gen);
-        }
-    }
+    vector<int> grid(L*L, 0);
 
+    for (int index = 0; index < L * L; ++index) {
+        grid[index] = dis(gen);
+    }
+    
     // create a window
     sf::RenderWindow window(sf::VideoMode(px, px), "Shawn's Game of Life");
 
@@ -110,69 +109,53 @@ int rep() {
     return dis(gen);
 }
 
-void draw(sf::RenderWindow &window, vector<vector<int>> &grid) {
+void draw(sf::RenderWindow &window, vector<int> &grid) {
     // draw grid
     sf::RectangleShape cell(sf::Vector2f(px / L, px / L));
 
-    for (int i = 0; i < L; ++i) {
-        for (int j = 0; j < L; ++j) {
-            if (grid[i][j] == 1) {
-                cell.setFillColor(sf::Color::White);
-            } else {
-                cell.setFillColor(sf::Color::Black);
-            }
+    for (int index = 0; index < L * L; ++index) {
+        int i = index / L; // x position
+        int j = index % L; // y position
 
-            cell.setPosition(i * px / L, j * px / L);
-            window.draw(cell);
+        if (grid[index] == 1) {
+            cell.setFillColor(sf::Color::White);
+        } else {
+            cell.setFillColor(sf::Color::Black);
         }
+
+        cell.setPosition(i * px / L, j * px / L);
+        window.draw(cell);
     }
 }
 
-vector<vector<int>> update(vector<vector<int>> &grid) {
+vector<int> update(vector<int> &grid) {
     // update grid
-    vector<vector<int>> new_grid(L, vector<int>(L, 0));
+    vector<int> new_grid(L * L, 0);
 
-    for (int i = 0; i < L; ++i) {
-        for (int j = 0; j < L; ++j) {
-            
-            // moore neighborhood
-            vector<int> x = {i - 1, i, i + 1};
-            vector<int> y = {j - 1, j, j + 1};
+    for (int index = 0; index < L * L; ++index) {
+        int i = index / L;
+        int j = index % L;
 
-            int count = 0;
+        // moore neighborhood with periodic boundary conditions
+        vector<int> neighbors = {
+            ((i - 1 + L) % L) * L + ((j - 1 + L) % L), ((i - 1 + L) % L) * L + j, ((i - 1 + L) % L) * L + ((j + 1) % L),
+            i * L + ((j - 1 + L) % L), i * L + ((j + 1) % L),
+            ((i + 1) % L) * L + ((j - 1 + L) % L), ((i + 1) % L) * L + j, ((i + 1) % L) * L + ((j + 1) % L)
+        };
 
-            for (int a : x) {
-                // periodic boundary conditions
-                if (a < 0) {
-                    a = L - 1;
-                } else if (a == L) {
-                    a = 0;
-                }
+        int count = 0;
 
-                for (int b : y) {
-                    // periodic boundary conditions
-                    if (b < 0) {
-                        b = L - 1;
-                    } else if (b == L) {
-                        b = 0;
-                    }
+        for (int neighbor : neighbors) {
+            count += grid[neighbor];
+        }
 
-                    // local saturation
-                    if (grid[a][b] == 1) {
-                        count++;
-                    }
-                }
+        if (grid[index] == 0) {
+            if (count < K && count > 0) {
+                new_grid[index] = rep();
             }
-            
-                if (grid[i][j] == 0) {
-                if (count < K && count > 0) {
-                    new_grid[i][j] = rep();
-                }
-            } else {
-
-                if (count == 0) {
-                    new_grid[i][j] = death();
-                }
+        } else {
+            if (count == 0) {
+                new_grid[index] = death();
             }
         }
     }
