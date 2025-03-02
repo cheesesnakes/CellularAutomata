@@ -1,0 +1,1 @@
+A barebones cellular automata simulation of a predator - prey system. I got my inspiration for this project from [Cattaneo and Denunzio, 2006](https://web2.qatar.cmu.edu/~gdicaro/15382-Spring18/additional/prey-predator-CA-2006.pdf).
